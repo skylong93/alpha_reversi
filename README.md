@@ -1,1 +1,5 @@
 # alpha_reversi
+使用DQN训练翻转棋，对于白棋和黑棋的模型做区分。
+main_train 用于训练
+main_play 用于人机对战
+main_calculate和main_calculate_random用于统计使用模型，和使用随机策略的胜率。用于评估模型的性能
