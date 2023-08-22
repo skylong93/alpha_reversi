@@ -140,9 +140,12 @@ def main():
                 train_output_white.append(y_true[0])
 
         if len(train_input_black) != 0:
+            print("fit black model")
             model_black_predict.fit(np.array(train_input_black), np.array(train_output_black), epochs=5, batch_size=128)
         if len(train_input_white) != 0:
-            model_black_predict.fit(np.array(train_input_white), np.array(train_output_white), epochs=5, batch_size=128)
+            print("fit black model")
+            model_white_predict.fit(np.array(train_input_white), np.array(train_output_white), epochs=5, batch_size=128)
+
         train_input_black = list()
         train_input_white = list()
         train_output_black = list()
