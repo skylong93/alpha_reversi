@@ -1,10 +1,10 @@
 import random
 
-from board_env.board import Board
-from board_env.player import Player
+from .board_env.board import Board
+from .board_env.player import Player
 import numpy as np
 from tensorflow.keras.models import load_model
-from exception.base_exception import ReversiBaseException
+from .exception.base_exception import ReversiBaseException
 import os.path
 
 """
@@ -15,8 +15,6 @@ import os.path
 3、每次预测的时候，输入当前的局面状态，让然后会输出每个位置的价值。将当前局面可走的棋，计算出可走棋中的最大价值。就是电脑的走子点
 4、然后又轮到玩家下棋，循环往复，至到终局
 """
-
-
 def play():
     # 获取模型
     if os.path.exists('model_black.h5'):
