@@ -26,10 +26,10 @@ def collect_experience(board, model_black, model_white, episode, experience_queu
     if epsilon <= np.random.uniform(0, 1):
         state = board.get_board()
         if player == Player.BLACK:
-            next_action_probability = model_black.predict(np.array([state.flatten()]))
+            next_action_probability = model_black.predict(np.array([state]))
             next_action = divmod(np.argmax(next_action_probability[0]), 8)
         else:
-            next_action_probability = model_white.predict(np.array([state.flatten()]))
+            next_action_probability = model_white.predict(np.array([state]))
             next_action = divmod(np.argmax(next_action_probability[0]), 8)
     else:
         next_action = random.sample(board.check_valid_position(player), 1)[0]
@@ -57,7 +57,7 @@ def collect_experience(board, model_black, model_white, episode, experience_queu
 
 
 """
-使用ddqn
+使用ddqn下一步训练
 
 """
 
@@ -85,7 +85,7 @@ def main():
         model_white_target = DQN.get_model(8)
 
     # 用于经验回放
-    queue_size = 100
+    queue_size = 10
     episodes = 1
     experience_queue = deque(maxlen=queue_size)
     train_input_black = list()
@@ -114,15 +114,15 @@ def main():
                 model_target = model_white_target
                 reward = -experience["r"] if "r" in experience else -9999999
 
-            y_pred = model_practice.predict(np.array([experience["st"].flatten()]))
+            y_pred = model_practice.predict(np.array([experience["st"]]))
             # 只有下棋位置有值，为reward，其他位置均是0
             y_true = np.copy(y_pred)
             # 使用最优贝尔曼方程，TD算法设定y_true
             if experience["at_valid"] and reward == 0:
-                ut_predict_1 = model_practice.predict(np.array([experience["st_1"].flatten()]))
-                ut_target_1 = model_target.predict(np.array([experience["st_1"].flatten()]))
+                ut_predict_1 = model_practice.predict(np.array([experience["st_1"]]))
+                ut_target_1 = model_target.predict(np.array([experience["st_1"]]))
                 a_max_index = np.argmax(ut_predict_1)
-                y_true[0][experience["at"][0] * 8 + experience["at"][1]] = reward + gamma * ut_target_1[a_max_index]
+                y_true[0][experience["at"][0] * 8 + experience["at"][1]] = reward + gamma * ut_target_1[0][a_max_index]
             elif experience["at_valid"] and reward != 0:
                 y_true[0][experience["at"][0] * 8 + experience["at"][1]] = float(reward)
             else:
@@ -133,11 +133,11 @@ def main():
             # history = model.fit(partial_x_train, partial_y_train,epochs=10,batch_size=512, validation_data=(x_val, y_val))
 
             if experience["p"] == Player.BLACK.value:
-                train_input_black.append(y_pred[0])
-                train_output_black.append(y_pred[0])
+                train_input_black.append(y_pred[0].reshape(8, 8))
+                train_output_black.append(y_true[0])
             else:
-                train_input_white.append(y_pred[0])
-                train_output_white.append(y_pred[0])
+                train_input_white.append(y_pred[0].reshape(8, 8))
+                train_output_white.append(y_true[0])
 
         if len(train_input_black) != 0:
             model_black_predict.fit(np.array(train_input_black), np.array(train_output_black), epochs=5, batch_size=128)

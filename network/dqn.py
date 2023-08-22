@@ -57,7 +57,9 @@ class DQN(object):
         d_add = layers.Lambda(lambda x_add: x_add[0] + x_add[1])([d_outputs, v_mean])
         outputs = layers.Lambda(lambda y: tf.add(y[0], y[1]))([v_outputs, d_add])
 
-        model = keras.Model(inputs, outputs, name="toy_resnet")
-        model.summary()
+        model = keras.Model(inputs, outputs, name="ddqn")
+        model.compile(loss='mse', optimizer=Adam(learning_rate=0.001))
+        # model.summary()
+        return model
 
 DQN.optimize_DQN(8)
