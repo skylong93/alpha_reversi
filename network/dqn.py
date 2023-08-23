@@ -6,6 +6,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Input, Dropout
 from tensorflow.keras.optimizers import Adam
 from collections import deque
+from tensorflow.keras import backend as K
 
 """
 DQN的神经网络模型，采用全连接网络执行。
@@ -47,19 +48,22 @@ class DQN(object):
         x = layers.Flatten()(x)
 
         # 对决网络，需要有两个Dense网络
-        v = layers.Dense(512, activation='relu')(x)
+        v_1 = layers.Dense(512, activation='relu')(x)
+        v_2 = layers.Dense(512, activation='relu')(v_1)
+        v = layers.Add()([v_1, v_2])
         v_outputs = layers.Dense(action_space, activation='linear')(v)
 
-        d = layers.Dense(512, activation='relu')(x)
+        d_1 = layers.Dense(512, activation='relu')(x)
+        d_2 = layers.Dense(512, activation='relu')(d_1)
+        d = layers.Add()([d_1, d_2])
         d_outputs = layers.Dense(1, activation='linear')(d)
 
-        v_mean = layers.Lambda(lambda x: tf.reduce_mean(x))(v_outputs)
+        v_mean = layers.Lambda(lambda x: K.mean(x))(v_outputs)
         d_add = layers.Lambda(lambda x_add: x_add[0] + x_add[1])([d_outputs, v_mean])
-        outputs = layers.Lambda(lambda y: tf.add(y[0], y[1]))([v_outputs, d_add])
+        outputs = layers.Add()([v_outputs, d_add])
 
         model = keras.Model(inputs, outputs, name="ddqn")
         model.compile(loss='mse', optimizer=Adam(learning_rate=0.001))
-        # model.summary()
         return model
 
 DQN.optimize_DQN(8)

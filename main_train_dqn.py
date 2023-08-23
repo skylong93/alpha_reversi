@@ -75,8 +75,9 @@ def main():
         model_white = DQN.get_model(8)
 
     # 用于经验回放
-    queue_size = 100
-    episodes = 1
+    queue_size = 10000
+    choice_size = 10000
+    episodes = 50000
     experience_queue = deque(maxlen=queue_size)
     train_input_black = list()
     train_input_white = list()
@@ -108,7 +109,7 @@ def main():
             # 使用最优贝尔曼方程，TD算法设定y_true
             if experience["at_valid"] and reward == 0:
                 ut_1 = model_practice.predict(np.array([experience["st_1"].flatten()]))
-                y_true[0][experience["at"][0] * 8 + experience["at"][1]] = reward + gamma * ut_1[0][experience["at"][0] * 8 + experience["at"][1]]
+                y_true[0][experience["at"][0] * 8 + experience["at"][1]] = reward + gamma * np.max(ut_1[0])
             elif experience["at_valid"] and reward != 0:
                 y_true[0][experience["at"][0] * 8 + experience["at"][1]] = float(reward)
             else:

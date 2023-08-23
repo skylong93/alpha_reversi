@@ -24,13 +24,12 @@ def play():
     board = Board()
 
     episode = 0
-    all_episode = 1
+    all_episode = 5000
     while True:
-        board.print_board()
-        print("")
         # color = random.choice([1, 2])
         terminal, player_win = board.is_terminal()
         if terminal:
+            # board.print_board()
             if player_win == Player.BLACK:
                 black_win += 1
                 episode += 1

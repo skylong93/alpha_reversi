@@ -85,8 +85,8 @@ def main():
         model_white_target = DQN.get_model(8)
 
     # 用于经验回放
-    queue_size = 10
-    episodes = 1
+    queue_size = 100
+    episodes = 2
     experience_queue = deque(maxlen=queue_size)
     train_input_black = list()
     train_input_white = list()
@@ -103,7 +103,9 @@ def main():
 
         print("collect_finish")
         # 先用有奖励的经验训练一次，使的权重有值，且此时所有位置的Q值都是已知的。
-        for idx, experience in np.ndenumerate(np.array(np.random.choice(experience_queue))):
+        experience_list = np.array(experience_queue)
+        np.random.shuffle(experience_list)
+        for idx, experience in np.ndenumerate(experience_list):
             # 黑棋则训练黑棋的DQN
             if experience["p"] == Player.BLACK.value:
                 model_practice = model_black_predict
@@ -114,9 +116,9 @@ def main():
                 model_target = model_white_target
                 reward = -experience["r"] if "r" in experience else -9999999
 
-            y_pred = model_practice.predict(np.array([experience["st"]]))
+            y_true = model_practice.predict(np.array([experience["st"]]))
             # 只有下棋位置有值，为reward，其他位置均是0
-            y_true = np.copy(y_pred)
+            # y_true = np.copy(y_pred)
             # 使用最优贝尔曼方程，TD算法设定y_true
             if experience["at_valid"] and reward == 0:
                 ut_predict_1 = model_practice.predict(np.array([experience["st_1"]]))
@@ -133,18 +135,18 @@ def main():
             # history = model.fit(partial_x_train, partial_y_train,epochs=10,batch_size=512, validation_data=(x_val, y_val))
 
             if experience["p"] == Player.BLACK.value:
-                train_input_black.append(y_pred[0].reshape(8, 8))
+                train_input_black.append(experience["st"])
                 train_output_black.append(y_true[0])
             else:
-                train_input_white.append(y_pred[0].reshape(8, 8))
+                train_input_white.append(experience["st"])
                 train_output_white.append(y_true[0])
 
         if len(train_input_black) != 0:
             print("fit black model")
-            model_black_predict.fit(np.array(train_input_black), np.array(train_output_black), epochs=5, batch_size=128)
+            model_black_predict.fit(np.array(train_input_black), np.array(train_output_black), epochs=10, batch_size=32)
         if len(train_input_white) != 0:
             print("fit white model")
-            model_white_predict.fit(np.array(train_input_white), np.array(train_output_white), epochs=5, batch_size=128)
+            model_white_predict.fit(np.array(train_input_white), np.array(train_output_white), epochs=10, batch_size=32)
 
         train_input_black = list()
         train_input_white = list()

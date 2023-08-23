@@ -54,7 +54,7 @@ def play():
             board.move(board.player, position)
             continue
         else:
-            pred = machine_model.predict(np.array([board.get_board().flatten()]))
+            pred = machine_model.predict(np.array([board.get_board()]))
             all_position = list(board.check_valid_position(board.player))
             all_pred_value = np.array([(pred[0][i[0] * 8 + i[1]]) for i in all_position])
             max_pred_index = np.argmax(all_pred_value)
