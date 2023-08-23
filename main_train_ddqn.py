@@ -11,6 +11,7 @@ import os.path
 
 
 # board的状态不一定需要是初始状态，可以是中间任意一个状态
+# experience_queue中的均是有效的位置
 def collect_experience(board, model_black, model_white, episode, experience_queue):
     player = board.player
     terminal, _ = board.is_terminal()
@@ -20,11 +21,11 @@ def collect_experience(board, model_black, model_white, episode, experience_queu
     if len(board.check_valid_position(player)) == 0:
         player = Player.get_opposite(player)
     state = board.get_board()
+    player_valid_position = board.check_valid_position(player)
 
     epsilon = max(0.5 * (1 / (episode + 1)), 0.01)
     # 以 1-epsilon的概率，使用Q函数预测的动作，以epsilon的概率，随机选取动作
     if epsilon <= np.random.uniform(0, 1):
-        state = board.get_board()
         if player == Player.BLACK:
             next_action_probability = model_black.predict(np.array([state]))
             next_action = divmod(np.argmax(next_action_probability[0]), 8)
@@ -34,9 +35,9 @@ def collect_experience(board, model_black, model_white, episode, experience_queu
     else:
         next_action = random.sample(board.check_valid_position(player), 1)[0]
 
-    # 若此时的动作是无效的，将该该动作的at_valid改成False
+    # 若此时的动作是无效的，再找一个next_action
     if not board.check_next_move(player, next_action):
-        experience_queue.append({"st": state, "p": player.value, "at": next_action, "at_valid": False})
+        # experience_queue.append({"st": state, "p": player.value, "at": next_action, "at_valid": False})
         next_action = random.sample(board.check_valid_position(player), 1)[0]
     board.move(player, next_action)
 
@@ -44,9 +45,10 @@ def collect_experience(board, model_black, model_white, episode, experience_queu
     next_state = board.get_board()
 
     # 黑棋的胜利reward设置为1000
-    reward = 0 if not terminal else 1000 if playerWin == Player.BLACK else -1000 if playerWin == Player.WHITE else 0
+    reward = 0 if not terminal else 1000 if playerWin == Player.BLACK else 1000 if playerWin == Player.WHITE else 0
     experience_queue.append(
-        {"st": state, "p": player.value, "at": next_action, "at_valid": True, "st_1": next_state, "r": reward})
+        {"st": state, "p": player.value, "p_valid": player_valid_position, "at": next_action, "st_1": next_state,
+         "r": reward})
     # if episode == 0 and reward != 0:
     #     begin_experience.add(
     #         {"st": state, "p": player.value, "at": next_action, "at_valid": True, "s_t_1": next_state, "r": reward})
@@ -110,25 +112,33 @@ def main():
             if experience["p"] == Player.BLACK.value:
                 model_practice = model_black_predict
                 model_target = model_black_target
-                reward = experience["r"] if "r" in experience else -9999999
             else:
                 model_practice = model_white_predict
                 model_target = model_white_target
-                reward = -experience["r"] if "r" in experience else -9999999
 
-            y_true = model_practice.predict(np.array([experience["st"]]))
+            reward = experience["r"]
+            player_valid_position = experience["p_valid"]
+            player_valid_position_flatten = list()
+            for item in player_valid_position:
+                player_valid_position_flatten.append(item[0] * 8 + item[1])
+
+            y_true = model_practice.predict(np.array([experience["st"]]))[0]
+            for valid_position in range(64):
+                if valid_position not in player_valid_position_flatten:
+                    y_true[valid_position] = -99
+
             # 只有下棋位置有值，为reward，其他位置均是0
             # y_true = np.copy(y_pred)
             # 使用最优贝尔曼方程，TD算法设定y_true
-            if experience["at_valid"] and reward == 0:
+            if reward == 0:
                 ut_predict_1 = model_practice.predict(np.array([experience["st_1"]]))
                 ut_target_1 = model_target.predict(np.array([experience["st_1"]]))
                 a_max_index = np.argmax(ut_predict_1)
-                y_true[0][experience["at"][0] * 8 + experience["at"][1]] = reward + gamma * ut_target_1[0][a_max_index]
-            elif experience["at_valid"] and reward != 0:
-                y_true[0][experience["at"][0] * 8 + experience["at"][1]] = float(reward)
+                y_true[experience["at"][0] * 8 + experience["at"][1]] = reward + gamma * ut_target_1[0][a_max_index]
+            elif reward != 0:
+                y_true[experience["at"][0] * 8 + experience["at"][1]] = float(reward)
             else:
-                y_true[0][experience["at"][0] * 8 + experience["at"][1]] = float(reward)
+                y_true[experience["at"][0] * 8 + experience["at"][1]] = float(reward)
 
             # fit方法参数。其中前两个表示训练集，以及训练集的标注。epochs表示训练过程中数据的轮次，epochs=10，意味着同一条数据，在神经网络中输入过10次，batch_size=512表示，在经过512个数据的输入之后，计算损失并做梯度下降。validation_data表示验证集。
             # 所有，epochs轮次越多，验证的loss就会越小。因为每一轮的梯度下降之后，模型对训练集的数据拟合就越高。正因为模型对训练集拟合程度变高，泛化能力就会降低，因为学习到的特征，都是训练集的特征，而不是一般性的特征。
@@ -136,17 +146,17 @@ def main():
 
             if experience["p"] == Player.BLACK.value:
                 train_input_black.append(experience["st"])
-                train_output_black.append(y_true[0])
+                train_output_black.append(y_true)
             else:
                 train_input_white.append(experience["st"])
-                train_output_white.append(y_true[0])
+                train_output_white.append(y_true)
 
         if len(train_input_black) != 0:
             print("fit black model")
-            model_black_predict.fit(np.array(train_input_black), np.array(train_output_black), epochs=10, batch_size=32)
+            model_black_predict.fit(np.array(train_input_black), np.array(train_output_black), epochs=50, batch_size=32)
         if len(train_input_white) != 0:
             print("fit white model")
-            model_white_predict.fit(np.array(train_input_white), np.array(train_output_white), epochs=10, batch_size=32)
+            model_white_predict.fit(np.array(train_input_white), np.array(train_output_white), epochs=50, batch_size=32)
 
         train_input_black = list()
         train_input_white = list()
