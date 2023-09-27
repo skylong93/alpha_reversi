@@ -107,7 +107,9 @@ def main():
         # 先用有奖励的经验训练一次，使的权重有值，且此时所有位置的Q值都是已知的。
         experience_list = np.array(experience_queue)
         np.random.shuffle(experience_list)
-        for idx, experience in np.ndenumerate(experience_list):
+        # for idx, experience in np.ndenumerate(experience_list):
+        for idx in range(len(experience_list)):
+            experience = experience_list[idx]
             # 黑棋则训练黑棋的DQN
             if experience["p"] == Player.BLACK.value:
                 model_practice = model_black_predict
@@ -117,15 +119,16 @@ def main():
                 model_target = model_white_target
 
             reward = experience["r"]
-            player_valid_position = experience["p_valid"]
-            player_valid_position_flatten = list()
-            for item in player_valid_position:
-                player_valid_position_flatten.append(item[0] * 8 + item[1])
+            # player_valid_position = experience["p_valid"]
+            # player_valid_position_flatten = list()
+            # for item in player_valid_position:
+            #     player_valid_position_flatten.append(item[0] * 8 + item[1])
 
             y_true = model_practice.predict(np.array([experience["st"]]))[0]
-            for valid_position in range(64):
-                if valid_position not in player_valid_position_flatten:
-                    y_true[valid_position] = -99
+            # 不对无效位置做训练
+            # for valid_position in range(64):
+            #     if valid_position not in player_valid_position_flatten:
+            #         y_true[valid_position] = -1
 
             # 只有下棋位置有值，为reward，其他位置均是0
             # y_true = np.copy(y_pred)
@@ -140,10 +143,6 @@ def main():
             else:
                 y_true[experience["at"][0] * 8 + experience["at"][1]] = float(reward)
 
-            # fit方法参数。其中前两个表示训练集，以及训练集的标注。epochs表示训练过程中数据的轮次，epochs=10，意味着同一条数据，在神经网络中输入过10次，batch_size=512表示，在经过512个数据的输入之后，计算损失并做梯度下降。validation_data表示验证集。
-            # 所有，epochs轮次越多，验证的loss就会越小。因为每一轮的梯度下降之后，模型对训练集的数据拟合就越高。正因为模型对训练集拟合程度变高，泛化能力就会降低，因为学习到的特征，都是训练集的特征，而不是一般性的特征。
-            # history = model.fit(partial_x_train, partial_y_train,epochs=10,batch_size=512, validation_data=(x_val, y_val))
-
             if experience["p"] == Player.BLACK.value:
                 train_input_black.append(experience["st"])
                 train_output_black.append(y_true)
@@ -151,17 +150,22 @@ def main():
                 train_input_white.append(experience["st"])
                 train_output_white.append(y_true)
 
-        if len(train_input_black) != 0:
-            print("fit black model")
-            model_black_predict.fit(np.array(train_input_black), np.array(train_output_black), epochs=50, batch_size=32)
-        if len(train_input_white) != 0:
-            print("fit white model")
-            model_white_predict.fit(np.array(train_input_white), np.array(train_output_white), epochs=50, batch_size=32)
+            # 500次数据，就做一次训练
+            if (idx + 1) % 500 == 0:
+                if len(train_input_black) != 0:
+                    print("fit black model")
+                    model_black_predict.fit(np.array(train_input_black), np.array(train_output_black), epochs=20,
+                                            batch_size=32)
+                if len(train_input_white) != 0:
+                    print("fit white model")
+                    model_white_predict.fit(np.array(train_input_white), np.array(train_output_white), epochs=20,
+                                            batch_size=32)
 
-        train_input_black = list()
-        train_input_white = list()
-        train_output_black = list()
-        train_output_white = list()
+                train_input_black = list()
+                train_input_white = list()
+                train_output_black = list()
+                train_output_white = list()
+
         model_black_predict.save('model_black.h5')
         model_black_predict.save('model_white.h5')
         model_black_target.set_weights(model_black_predict.get_weights())

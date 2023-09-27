@@ -1,10 +1,16 @@
 import random
 
-from .board_env.board import Board
-from .board_env.player import Player
+from board_env.board import Board
+from board_env.player import Player
 import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Input, Dropout
+from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import load_model
-from .exception.base_exception import ReversiBaseException
+from exception.base_exception import ReversiBaseException
 import os.path
 
 """
@@ -15,6 +21,8 @@ import os.path
 3、每次预测的时候，输入当前的局面状态，让然后会输出每个位置的价值。将当前局面可走的棋，计算出可走棋中的最大价值。就是电脑的走子点
 4、然后又轮到玩家下棋，循环往复，至到终局
 """
+
+
 def play():
     # 获取模型
     if os.path.exists('model_black.h5'):
@@ -29,7 +37,9 @@ def play():
 
     black_win = 0
     white_win = 0
+    draw = 0
 
+    # color=1，则随机策略是玩家
     color = "1"
     human_player = Player.BLACK if color == str(Player.BLACK.value) else Player.WHITE
     machine_player = Player.get_opposite(human_player)
@@ -43,7 +53,11 @@ def play():
         terminal, player_win = board.is_terminal()
         if terminal:
             # board.print_board()
-            if player_win == Player.BLACK:
+            if player_win == None:
+                draw += 1
+                episode += 1
+                print("回合：" + str(episode) + " 和棋")
+            elif player_win == Player.BLACK:
                 black_win += 1
                 episode += 1
                 print("回合：" + str(episode) + " 胜利方：黑棋")
@@ -66,7 +80,7 @@ def play():
             board.move(board.player, position)
             continue
         else:
-            pred = machine_model.predict(np.array([board.get_board().flatten()]))
+            pred = machine_model.predict(np.array([board.get_board()]))
             all_position = list(board.check_valid_position(board.player))
             if len(all_position) == 0:
                 board.player = Player.get_opposite(board.player)
@@ -80,6 +94,7 @@ def play():
     print("黑棋是随机策略，白棋是模型策略")
     print("黑棋胜利次数" + str(black_win))
     print("白棋胜利次数" + str(white_win))
+    print("和棋次数" + str(draw))
 
 
 def random_get_position(all_position):

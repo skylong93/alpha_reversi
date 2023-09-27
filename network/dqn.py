@@ -42,19 +42,25 @@ class DQN(object):
     def optimize_DQN(board_size):
         action_space = board_size * board_size
         inputs = keras.Input(shape=(board_size, board_size, 1), name="board")
-        x = layers.Conv2D(32, 3, activation="relu")(inputs)
-        x = layers.Conv2D(32, 3, activation="relu")(x)
+        x = layers.Conv2D(32, 3)(inputs)
+        x = layers.LeakyReLU(alpha=0.05)(x)
+        x = layers.Conv2D(32, 3)(x)
+        x = layers.LeakyReLU(alpha=0.05)(x)
         x = layers.MaxPooling2D(2)(x)
         x = layers.Flatten()(x)
 
         # 对决网络，需要有两个Dense网络
-        v_1 = layers.Dense(512, activation='relu')(x)
-        v_2 = layers.Dense(512, activation='relu')(v_1)
+        v_1 = layers.Dense(512)(x)
+        v_1 = layers.LeakyReLU(alpha=0.05)(v_1)
+        v_2 = layers.Dense(512)(v_1)
+        v_2 = layers.LeakyReLU(alpha=0.05)(v_2)
         v = layers.Add()([v_1, v_2])
         v_outputs = layers.Dense(action_space, activation='linear')(v)
 
-        d_1 = layers.Dense(512, activation='relu')(x)
-        d_2 = layers.Dense(512, activation='relu')(d_1)
+        d_1 = layers.Dense(512)(x)
+        d_1 = layers.LeakyReLU(alpha=0.05)(d_1)
+        d_2 = layers.Dense(512)(d_1)
+        d_2 = layers.LeakyReLU(alpha=0.05)(d_2)
         d = layers.Add()([d_1, d_2])
         d_outputs = layers.Dense(1, activation='linear')(d)
 
@@ -63,7 +69,8 @@ class DQN(object):
         outputs = layers.Add()([v_outputs, d_add])
 
         model = keras.Model(inputs, outputs, name="ddqn")
-        model.compile(loss='mse', optimizer=Adam(learning_rate=0.001))
+        model.compile(loss='mse', optimizer=Adam(learning_rate=0.05))
         return model
 
-DQN.optimize_DQN(8)
+model=DQN.optimize_DQN(8)
+model.summary()
