@@ -64,13 +64,13 @@ def main():
     # model_black = DQN.get_model(8)
     # model_white = DQN.get_model(8)
 
-    if os.path.exists('model_black.h5'):
-        model_black = load_model('model_black.h5')
+    if os.path.exists('../../model_black.h5'):
+        model_black = load_model('../../model_black.h5')
     else:
         model_black = DQN.get_model(8)
 
-    if os.path.exists('model_white.h5'):
-        model_white = load_model('model_white.h5')
+    if os.path.exists('../../model_white.h5'):
+        model_white = load_model('../../model_white.h5')
     else:
         model_white = DQN.get_model(8)
 

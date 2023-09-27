@@ -17,13 +17,13 @@ import os.path
 
 def play():
     # 获取模型
-    if os.path.exists('model_black.h5'):
-        model_black = load_model('model_black.h5')
+    if os.path.exists('../model_black.h5'):
+        model_black = load_model('../model_black.h5')
     else:
         raise ReversiBaseException("模型不存在")
 
-    if os.path.exists('model_white.h5'):
-        model_white = load_model('model_white.h5')
+    if os.path.exists('../model_white.h5'):
+        model_white = load_model('../model_white.h5')
     else:
         raise ReversiBaseException("模型不存在")
 

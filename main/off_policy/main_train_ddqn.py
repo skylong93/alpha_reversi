@@ -72,16 +72,16 @@ def main():
     # model_black = DQN.get_model(8)
     # model_white = DQN.get_model(8)
 
-    if os.path.exists('model_black.h5'):
-        model_black_predict = load_model('model_black.h5')
-        model_black_target = load_model('model_black.h5')
+    if os.path.exists('../../model_black.h5'):
+        model_black_predict = load_model('../../model_black.h5')
+        model_black_target = load_model('../../model_black.h5')
     else:
         model_black_predict = DQN.get_model(8)
         model_black_target = DQN.get_model(8)
 
-    if os.path.exists('model_white.h5'):
-        model_white_predict = load_model('model_white.h5')
-        model_white_target = load_model('model_white.h5')
+    if os.path.exists('../../model_white.h5'):
+        model_white_predict = load_model('../../model_white.h5')
+        model_white_target = load_model('../../model_white.h5')
     else:
         model_white_predict = DQN.get_model(8)
         model_white_target = DQN.get_model(8)
